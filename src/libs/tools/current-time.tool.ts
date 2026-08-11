@@ -48,7 +48,9 @@ export const currentTimeSchema = z.object({
  * @returns `{ timezone, currentTime }` — currentTime เป็น string รูปแบบ
  *   en-GB full date + long time
  */
-export function getCurrentTime({ timezone }: z.output<typeof currentTimeSchema>) {
+export function getCurrentTime({
+  timezone,
+}: z.output<typeof currentTimeSchema>) {
   return {
     timezone,
     currentTime: new Intl.DateTimeFormat("en-GB", {
@@ -62,33 +64,31 @@ export function getCurrentTime({ timezone }: z.output<typeof currentTimeSchema>)
 // ─── Layer 2: JSON-compatible Schema (ส่งให้ LLM) ──────────────────────────
 // timezone เป็น optional ใน layer 2 (ไม่มีใน required array) —
 // LLM จะเห็นว่าไม่ต้องส่ง timezone ถ้าไม่รู้
-const currentTimeParameters = {
-  type: "object",
-  description: "Input for retrieving the current date and time in a timezone.",
-  properties: {
-    timezone: {
-      type: "string",
-      description:
-        "An IANA timezone such as Asia/Bangkok, Asia/Tokyo, or Europe/London. Defaults to Asia/Bangkok.",
+export const currentTimeParameters: Tool = {
+  type: "function",
+  function: {
+    name: "get_current_time",
+    description:
+      "Get the current date and time for an IANA timezone. Use this when the user asks what time it is in a location.",
+    parameters: {
+      type: "object",
+      properties: {
+        timezone: {
+          type: "string",
+          description:
+            "An IANA timezone such as Asia/Bangkok, Asia/Tokyo, or Europe/London. Defaults to Asia/Bangkok.",
+        },
+      },
     },
   },
-  additionalProperties: false,
-} as NonNullable<Tool["function"]["parameters"]>;
+};
 
 // ─── Layer 3: Tool Definition ──────────────────────────────────────────────
 /**
  * Tool definition สำหรับส่งให้ Ollama — `get_current_time` เป็น tool
  * ที่ไม่เปลี่ยนแปลง state (read-only) LLM ควรเรียกเมื่อผู้ใช้ถามเวลา
  */
-export const currentTimeDefinition: Tool = {
-  type: "function",
-  function: {
-    name: "get_current_time",
-    description:
-      "Get the current date and time for an IANA timezone. Use this when the user asks what time it is in a location.",
-    parameters: currentTimeParameters,
-  },
-};
+export const currentTimeDefinition: Tool = currentTimeParameters;
 
 // ─── Layer 5: Execute Validation Boundary ──────────────────────────────────
 /**

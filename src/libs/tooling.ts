@@ -139,7 +139,11 @@ export async function runToolLoop({
 
     // ไม่มี tool calls → assistant ตอบคำถามสุดท้ายแล้ว → จบ loop
     if (toolCalls.length === 0) {
-      return { finalMessage: assistantMessage, messages: history, rounds: round };
+      return {
+        finalMessage: assistantMessage,
+        messages: history,
+        rounds: round,
+      };
     }
 
     // LLM ขอเรียก tool หนึ่งตัวหรือหลายตัว → execute ตามลำดับที่ LLM ส่งมา

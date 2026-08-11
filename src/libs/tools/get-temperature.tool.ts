@@ -24,10 +24,9 @@ import type { AgentTool } from "../tooling.js";
  * ใช้ `z.string().trim().min(1)` — `.trim()` ตัด whitespace หัวท้าย
  * ก่อน validation; `.min(1)` รับประกันว่า string ไม่ว่างหลัง trim
  */
-export const getTemperatureSchema = z
-  .object({
-    city: z.string().trim().min(1),
-  });
+export const getTemperatureSchema = z.object({
+  city: z.string().trim().min(1),
+});
 
 // ─── Layer 4: Typed Function (business logic) ──────────────────────────────
 // ฟังก์ชันรับ city: string (plain type ไม่ใช่ Zod output object)
@@ -55,20 +54,22 @@ export function getTemperature(city: string): string {
 }
 
 // ─── Layer 2: JSON-compatible Schema (ส่งให้ LLM) ──────────────────────────
-const getTemperatureParameters = {
+export const getTemperatureParameters: Tool = {
   type: "object",
-  description: "Input for retrieving the example temperature of one city.",
-  properties: {
-    city: {
-      type: "string",
-      minLength: 1,
-      description:
-        "The city whose example temperature should be returned, such as Bangkok, Tokyo, or London.",
+  function: {
+    description: "Input for retrieving the example temperature of one city.",
+    parameters: {
+      required: ["city"],
+      properties: {
+        city: {
+          type: "string",
+          description:
+            "The city whose example temperature should be returned, such as Bangkok, Tokyo, or London.",
+        },
+      },
     },
   },
-  required: ["city"],
-  additionalProperties: false,
-} as NonNullable<Tool["function"]["parameters"]>;
+};
 
 // ─── Layer 3: Tool Definition ──────────────────────────────────────────────
 /**

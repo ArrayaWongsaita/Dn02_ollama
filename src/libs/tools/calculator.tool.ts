@@ -55,29 +55,35 @@ export function calculate({
 // ─── Layer 2: JSON-compatible Schema (ส่งให้ LLM) ──────────────────────────
 // Plain object ที่ LLM ใช้ทำความเข้าใจ contract ของ tool
 // ต้องเป็น JSON Schema subset ที่ Ollama รองรับ
-const calculatorParameters = {
-  type: "object",
-  description: "Input for calculating a result from two numbers.",
-  properties: {
-    operation: {
-      type: "string",
-      enum: ["add", "subtract", "multiply", "divide"],
-      description:
-        "The arithmetic operation to perform: add, subtract, multiply, or divide.",
-    },
-    a: {
-      type: "number",
-      description: "The first number in the calculation.",
-    },
-    b: {
-      type: "number",
-      description:
-        "The second number in the calculation; it must not be zero when dividing.",
+export const calculatorParameters: Tool = {
+  type: "function",
+  function: {
+    name: "calculate",
+    description:
+      "Perform an arithmetic operation on two numbers. Use divide only when the second number is not zero.",
+    parameters: {
+      type: "object",
+      properties: {
+        operation: {
+          type: "string",
+          enum: ["add", "subtract", "multiply", "divide"],
+          description:
+            "The arithmetic operation to perform: add, subtract, multiply, or divide.",
+        },
+        a: {
+          type: "number",
+          description: "The first number in the calculation.",
+        },
+        b: {
+          type: "number",
+          description:
+            "The second number in the calculation; it must not be zero when dividing.",
+        },
+      },
+      required: ["operation", "a", "b"],
     },
   },
-  required: ["operation", "a", "b"],
-  additionalProperties: false,
-} as NonNullable<Tool["function"]["parameters"]>;
+};
 
 // ─── Layer 3: Tool Definition ──────────────────────────────────────────────
 // Ollama Tool type — ชื่อ, คำอธิบาย, และ parameters ที่ LLM ใช้ตัดสินใจ
@@ -86,15 +92,7 @@ const calculatorParameters = {
  * Tool definition สำหรับส่งให้ Ollama — LLM ใช้ `name`, `description`
  * และ `parameters` เพื่อตัดสินใจเรียก tool และสร้าง arguments
  */
-export const calculatorDefinition: Tool = {
-  type: "function",
-  function: {
-    name: "calculate",
-    description:
-      "Perform an arithmetic operation on two numbers. Use divide only when the second number is not zero.",
-    parameters: calculatorParameters,
-  },
-};
+export const calculatorDefinition: Tool = calculatorParameters;
 
 // ─── Layer 5: Execute Validation Boundary ──────────────────────────────────
 // รวมทุก layer เข้าด้วยกัน: schema (1), fn (4), definition (3)

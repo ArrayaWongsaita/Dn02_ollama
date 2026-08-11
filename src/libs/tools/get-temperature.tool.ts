@@ -55,16 +55,22 @@ export function getTemperature(city: string): string {
 
 // ─── Layer 2: JSON-compatible Schema (ส่งให้ LLM) ──────────────────────────
 export const getTemperatureParameters: Tool = {
-  type: "object",
+  type: "function",
+
   function: {
-    description: "Input for retrieving the example temperature of one city.",
+    name: "get_city_temperature",
+    description: "Get the temperature of a city.",
+
     parameters: {
+      type: "object",
+
       required: ["city"],
+
       properties: {
         city: {
           type: "string",
           description:
-            "The city whose example temperature should be returned, such as Bangkok, Tokyo, or London.",
+            "The city whose temperature should be returned, such as Bangkok, Tokyo, or London.",
         },
       },
     },

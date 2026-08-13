@@ -13,19 +13,27 @@ import {
 import { calculatorParameters } from "./libs/tools/calculator.tool.js";
 import { ollama } from "./configs/ollama.config.js";
 import { env } from "./configs/env.config.js";
-import { ZodError } from "zod";
+import { tuple, ZodError } from "zod";
+import {
+  createTask,
+  createTaskSchema,
+  createTaskTool,
+} from "./libs/tools/create-task.tool.js";
+import { getTasksSchema, getTaskTool } from "./libs/tools/get-task.tool.js";
+import { prisma } from "./libs/prisma.js";
 
 async function main() {
   const userPrompt: Message = {
     role: "user",
-    content:
-      "ตอนนี้ที่กรุงเทพ เป็นเวลาเท่าไร และอณหภูมิเท่าไร และ 4 + 4 เท่ากับเท่าไร",
+    content: "check ข้อมูล tasks ทั้งหมดให้หน่อย ",
   };
 
   const tools: Tool[] = [
     getTemperatureParameters,
     currentTimeParameters,
     calculatorParameters,
+    createTaskTool,
+    getTaskTool,
   ];
 
   const context: Message[] = [userPrompt];
@@ -43,12 +51,42 @@ async function main() {
     // console.log("res.message", res.message);
     const toolCall = res.message.tool_calls;
     if (!toolCall || toolCall.length === 0) {
-      return context;
+      return res.message.content;
     }
-
-    toolCall.forEach((el) => {
+    for await (const el of toolCall) {
       try {
-        console.log("----", el.function);
+        console.log("tool call", el.function);
+
+        if (el.function.name === "get_tasks") {
+          try {
+            console.log("---------------------");
+            const where = getTasksSchema.parse(el.function.arguments) ?? {};
+
+            const result = await prisma.task.findMany({
+              where: where,
+            });
+            console.log("result", result);
+            context.push({
+              role: "tool",
+              content: JSON.stringify(result),
+              tool_name: "get_tasks",
+            });
+          } catch (error) {
+            console.log("error", error);
+          }
+        }
+
+        if (el.function.name === "create_task") {
+          const result = await createTask(
+            createTaskSchema.parse(el.function.arguments),
+          );
+          context.push({
+            role: "tool",
+            content: JSON.stringify(result),
+            tool_name: "create_task",
+          });
+        }
+
         if (el.function.name === "get_city_temperature") {
           console.log("get_city_temperature", el.function.arguments);
           const result = getTemperature(
@@ -79,12 +117,8 @@ async function main() {
           });
         }
       }
-    });
-
-    // console.log("context", context);
+    }
   }
-
-  return context;
 }
 
 console.log(await main());
